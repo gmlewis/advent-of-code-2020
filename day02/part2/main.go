@@ -61,9 +61,9 @@ func valid(start, end int, letter, passwd string) bool {
 	first := passwd[start-1:start] == letter
 	second := passwd[end-1:end] == letter
 
-	if first != second {
-		log.Printf("%v-%v %v: %v", start, end, letter, passwd)
-	}
+	// if first != second {
+	// 	log.Printf("%v-%v %v: %v", start, end, letter, passwd)
+	// }
 
 	return first != second
 }
