@@ -47,7 +47,7 @@ type Puzzle struct {
 }
 
 func readPuzzle(filename string) *Puzzle {
-	logf("Processing %v ...", filename)
+	log.Printf("Processing %v ...", filename)
 	buf, err := ioutil.ReadFile(filename)
 	check("ReadFile: %v", err)
 
