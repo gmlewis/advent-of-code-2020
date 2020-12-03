@@ -1,0 +1,4 @@
+name: part1
+
+dependencies:
+  io: ^0.3.4
