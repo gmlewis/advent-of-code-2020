@@ -1,0 +1,4 @@
+name: part1
+
+dependencies:
+  tuple: ^1.0.3
