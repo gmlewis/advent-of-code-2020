@@ -13,29 +13,45 @@ main(List<String> args) {
 process(String filename) {
   print('Processing $filename ...');
 
-	var lineRE  = RegExp(r'^(\d+)-(\d+) ([a-z]): (.*)$');
+  var passports = Passport.read(filename);
 
-  var count = 0;
-  var lines = File(filename).readAsLinesSync();
-  for (var line in lines) {
-    var m = lineRE.allMatches(line).first;
+  print('${passports.length} valid passports');
+}
 
-    var start = int.parse(m.group(1));
-    var end = int.parse(m.group(2));
-    var letter = m.group(3);
-    var passwd = m.group(4);
+class Passport {
+  Map<String, String> keyVals;
 
-    if (valid(start, end, letter, passwd)) {
-      count++;
+  static const required = ['byr', 'iyr', 'eyr', 'hgt', 'hcl', 'ecl', 'pid'];
+  
+  Passport(String buf) {
+    buf = buf.replaceAll('\n', ' ');
+    this.keyVals = {};
+
+    var fields = buf.split(' ');
+    for (var keyVal in fields) {
+      if (keyVal.isEmpty) continue;
+      var parts = keyVal.split(':');
+      this.keyVals[parts[0]] = parts[1];
     }
   }
 
-  print('$count valid passwords');
-}
-
-bool valid(int start, int end, String letter, String passwd) {
-  // print('$start-$end $letter: $passwd');
-  var first = passwd.substring(start-1,start) == letter;
-  var second = passwd.substring(end-1,end) == letter;
-  return first != second;
+  bool valid() {
+    for (var req in required) {
+      if (!keyVals.containsKey(req)) return false;
+    }
+    return true;
+  }
+  
+  static List<Passport> read(String filename) {
+    var passports = List<Passport>();
+    var buf = File(filename).readAsStringSync();
+    var groups = buf.split('\n\n');
+    for (var group in groups) {
+      var passport = Passport(group);
+      if (passport.valid()) {
+        passports.add(passport);
+      }
+    }
+    return passports;
+  }
 }
