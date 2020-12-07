@@ -65,15 +65,15 @@ func process(filename string) {
 		}
 	}
 
-	count := contains("shiny gold", rules, nil)
+	count := contains("shiny gold", rules)
 
 	fmt.Printf("Solution: %v\n", count-1)
 }
 
-func contains(key string, rules map[string][]*Contains, seen map[string]bool) int {
+func contains(key string, rules map[string][]*Contains) int {
 	total := 1
 	for _, v := range rules[key] {
-		count := contains(v.color, rules, seen)
+		count := contains(v.color, rules)
 		total += (count * v.quant)
 	}
 	// log.Printf("contains(%q)=%v", key, total)
