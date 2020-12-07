@@ -7,7 +7,6 @@ import (
 	"fmt"
 	"io/ioutil"
 	"log"
-	"strconv"
 	"strings"
 )
 
@@ -48,35 +47,6 @@ func readGroups(filename string) []string {
 	check("ReadFile: %v", err)
 	groups := strings.Split(string(buf), "\n\n")
 	return groups
-}
-
-func processSpaces(lines []string) []int {
-	var result []int
-	for _, line := range lines {
-		if line == "" {
-			continue
-		}
-		v := spaceID(line)
-		result = append(result, v)
-	}
-
-	return result
-}
-
-func spaceID(s string) int {
-	rowS := s[0:7]
-	colS := s[7:10]
-	rowS = strings.ReplaceAll(rowS, "F", "0")
-	rowS = strings.ReplaceAll(rowS, "B", "1")
-	colS = strings.ReplaceAll(colS, "L", "0")
-	colS = strings.ReplaceAll(colS, "R", "1")
-
-	row, err := strconv.ParseInt(rowS, 2, 64)
-	check("row ParseInt: %v", err)
-	col, err := strconv.ParseInt(colS, 2, 64)
-	check("col ParseInt: %v", err)
-
-	return int(row*8 + col)
 }
 
 func check(fmtStr string, args ...interface{}) {
