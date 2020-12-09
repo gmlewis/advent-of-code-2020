@@ -67,15 +67,16 @@ func foundSolution(n int, ints []int) bool {
 		min := ints[i]
 		max := ints[i]
 		for j := 0; j < *preamble-1; j++ {
-			if ints[i-j] < min {
-				min = ints[i-j]
+			sample := ints[i-j]
+			if sample < min {
+				min = sample
 			}
-			if ints[i-j] > max {
-				max = ints[i-j]
+			if sample > max {
+				max = sample
 			}
 
-			sum += ints[i-j]
-			logf("i=%v, j=%v, ints[%v]=%v, sum=%v", i, j, i-j, ints[i-j], sum)
+			sum += sample
+			logf("i=%v, j=%v, ints[%v]=%v, sum=%v", i, j, i-j, sample, sum)
 			if sum > v {
 				break
 			}
