@@ -27,7 +27,6 @@ func process(filename string) {
 }
 
 type Passport struct {
-	valid    bool
 	required int
 	pairs    map[string]string
 }
@@ -71,7 +70,6 @@ func readPassports(filename string) []*Passport {
 		}
 
 		if p.required == len(required) {
-			p.valid = true
 			result = append(result, p)
 		}
 	}
