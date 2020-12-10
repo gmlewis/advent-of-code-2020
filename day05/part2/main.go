@@ -35,6 +35,7 @@ func process(filename string) {
 	for i, v := range ids {
 		if i > 0 && v-ids[i-1] > 1 {
 			log.Printf("My seat: %v", v-1)
+			break
 		}
 	}
 }
