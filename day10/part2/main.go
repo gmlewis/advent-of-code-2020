@@ -6,7 +6,6 @@ import (
 	"flag"
 	"io/ioutil"
 	"log"
-	"sort"
 	"strconv"
 	"strings"
 )
@@ -26,7 +25,8 @@ func main() {
 }
 
 func process(filename string) {
-	var ints []int
+	ints := map[int]bool{}
+	var max int
 
 	lines := readLines(filename)
 	logf("lines=%v", lines)
@@ -38,64 +38,44 @@ func process(filename string) {
 
 		n, err := strconv.Atoi(line)
 		check("strconv.Atoi: %v", err)
-		ints = append(ints, n)
-	}
-
-	sort.Sort(sort.IntSlice(ints))
-
-	for f1 := 0; f1 <= 9; f1++ {
-		for f2 := 0; f2 <= 9; f2++ {
-			s1 := findPossibilities(2, ints, f1, f2)
-			if s1 <= 19208 {
-				log.Printf("OFFSET Solution(%v, %v): %v", f1, f2, s1)
-			}
-			s2 := findPossibilities(0, ints, f1, f2)
-			if s2 <= 19208 {
-				log.Printf("Solution(%v, %v): %v DIFF=%v", f1, f2, s2, 19208-s2)
-			}
+		ints[n] = true
+		if n > max {
+			max = n
 		}
 	}
+
+	cache := map[int]int{}
+	count := countPossibilities(0, ints, max, cache)
+
+	log.Printf("Solution: %v", count)
 }
 
-func findPossibilities(n int, ints []int, f1, f2 int) int {
-	count := 1
-	if n < 0 || n >= len(ints) {
-		return count
+func countPossibilities(lastN int, ints map[int]bool, max int, cache map[int]int) int {
+	if v, ok := cache[lastN]; ok {
+		return v
 	}
-	// log.Printf("ENTER: findPossibilities(ints[%v]=%v)", n, ints[n])
 
-	var diffs string
-	for i := 1; n+i < len(ints); i++ {
-		if ints[n+i]-ints[n+i-1] == 1 {
-			diffs += "1"
-		} else {
-			break
+	if lastN == max {
+		// log.Printf("countP(lastN=%v, max=%v): 1 => DONE!!!", lastN, max)
+		cache[lastN] = 1
+		return 1
+	}
+	if lastN > max {
+		// log.Printf("countP(lastN=%v, max=%v): 0 => not a terminal", lastN, max)
+		cache[lastN] = 0
+		return 0
+	}
+
+	var result int
+	for i := 1; i <= 3; i++ {
+		if ints[lastN+i] {
+			result += countPossibilities(lastN+i, ints, max, cache)
 		}
+		// log.Printf("countP(lastN=%v, max=%v): i=%v, result=%v", lastN, max, i, result)
 	}
 
-	switch diffs {
-	case "":
-		// log.Printf("findPossibilities(ints[%v]=%v) = %q = 1", n, ints[n], diffs)
-		return findPossibilities(n+1+len(diffs), ints, f1, f2)
-	case "1":
-		// log.Printf("findPossibilities(ints[%v]=%v) = %q = 1", n, ints[n], diffs)
-		return findPossibilities(n+1+len(diffs), ints, f1, f2)
-	case "11":
-		// log.Printf("findPossibilities(ints[%v]=%v) = %q = 2", n, ints[n], diffs)
-		return 2 * findPossibilities(n+1+len(diffs), ints, f1, f2)
-	case "111":
-		// log.Printf("findPossibilities(ints[%v]=%v) = %q = 4", n, ints[n], diffs)
-		return 4 * findPossibilities(n+1+len(diffs), ints, f1, f2)
-	case "1111":
-		// log.Printf("BEFORE findPossibilities(ints[%v]=%v) = %q", n, ints[n], diffs)
-		p1 := findPossibilities(n+2, ints, f1, f2)
-		p2 := findPossibilities(n+1+len(diffs), ints, f1, f2)
-		// log.Printf("AFTER findPossibilities(ints[%v]=%v) = %q: %v*%v+%v*%v", n, ints[n], diffs, f2, p2, f1, p1)
-		return f2*p2 + f1*p1
-	default:
-		log.Fatalf("UNHANDLED: findPossibilities(ints[%v]=%v) = %v", n, ints[n], diffs)
-	}
-	return 0
+	cache[lastN] = result
+	return result
 }
 
 func readLines(filename string) []string {
