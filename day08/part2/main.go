@@ -63,10 +63,10 @@ func process(filename string) {
 		ins := program[ip]
 		switch ins.op {
 		case "nop":
-			log.Printf("Experiment: Changing op at ip=%v from nop to jmp", ip)
+			// log.Printf("Experiment: Changing op at ip=%v from nop to jmp", ip)
 			cpu.program[ip].op = "jmp"
 		case "jmp":
-			log.Printf("Experiment: Changing op at ip=%v from jmp to nop", ip)
+			// log.Printf("Experiment: Changing op at ip=%v from jmp to nop", ip)
 			cpu.program[ip].op = "nop"
 		default:
 			continue
@@ -94,7 +94,7 @@ func (cpu *CPU) execute() ([]int, bool) {
 			return recorder, true
 		}
 		if seen[cpu.ip] {
-			log.Printf("Infinite loop: Accumulator = %v", cpu.accumulator)
+			// log.Printf("Infinite loop: Accumulator = %v", cpu.accumulator)
 			return recorder, false
 		}
 		seen[cpu.ip] = true
