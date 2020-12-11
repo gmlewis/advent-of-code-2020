@@ -6,16 +6,12 @@ import (
 	"flag"
 	"io/ioutil"
 	"log"
-	"regexp"
 	"strconv"
 	"strings"
 )
 
 var (
 	verbose = flag.Bool("v", false, "Verbose log messages")
-
-	lineRE     = regexp.MustCompile(`^(.*?) bags contain (.*)\.$`)
-	containsRE = regexp.MustCompile(`,?\s*(\d+) (.*?) bags?`)
 )
 
 func main() {
