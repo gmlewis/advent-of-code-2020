@@ -12,8 +12,8 @@ fn main() {
 struct Puzzle {
 	lines []string
 mut:
-	de    int
-	dn    int
+	wepos int
+	wnpos int
 	epos  int
 	npos  int
 }
@@ -21,7 +21,8 @@ mut:
 fn process(filename string) {
 	println('Processing $filename ...')
 	mut puz := &Puzzle{
-		de: 1
+		wepos: 10
+		wnpos: 1
 		lines: os.read_lines(filename) or { panic(err) }
 	}
 	puz.iterate()
@@ -34,32 +35,32 @@ fn (mut p Puzzle) iterate() {
 		mut amt := strconv.atoi(line[1..])
 		match line[0] {
 			`N` {
-				p.npos += amt
+				p.wnpos += amt
 			}
 			`S` {
-				p.npos -= amt
+				p.wnpos -= amt
 			}
 			`E` {
-				p.epos += amt
+				p.wepos += amt
 			}
 			`W` {
-				p.epos -= amt
+				p.wepos -= amt
 			}
 			`L` {
 				for amt > 0 {
-					p.de, p.dn = -p.dn, p.de
+					p.wepos, p.wnpos = -p.wnpos, p.wepos
 					amt -= 90
 				}
 			}
 			`R` {
 				for amt > 0 {
-					p.de, p.dn = p.dn, -p.de
+					p.wepos, p.wnpos = p.wnpos, -p.wepos
 					amt -= 90
 				}
 			}
 			`F` {
-				p.npos += amt * p.dn
-				p.epos += amt * p.de
+				p.npos += amt * p.wnpos
+				p.epos += amt * p.wepos
 			}
 			else {}
 		}
