@@ -7,7 +7,6 @@ import (
 	"fmt"
 	"io/ioutil"
 	"log"
-	"reflect"
 	"strings"
 )
 
@@ -28,14 +27,7 @@ func main() {
 func process(filename string) {
 	puz := readPuzzle(filename)
 
-	for {
-		logf("grid:\n%v", puz)
-		newGrid := puz.iterate()
-		if reflect.DeepEqual(newGrid, puz.grid) {
-			break
-		}
-		puz.grid = newGrid
-		logf("newGrid:\n%v", puz)
+	for puz.iterate() {
 	}
 
 	occupied := puz.occupied()
@@ -53,20 +45,28 @@ func (p *Puzzle) occupied() int {
 	return count
 }
 
-func (p *Puzzle) iterate() map[string]string {
+func (p *Puzzle) iterate() bool {
 	r := map[string]string{}
+	var changesMade bool
 	for k, v := range p.grid {
 		adj := p.countAdjacentOccupied(k)
 		// log.Printf("k=%v, v=%v, adj=%v", k, v, adj)
 		if v == "L" && adj == 0 {
 			r[k] = "#"
+			changesMade = true
 		} else if v == "#" && adj >= 5 {
 			r[k] = "L"
+			changesMade = true
 		} else {
 			r[k] = v
 		}
 	}
-	return r
+
+	if changesMade {
+		p.grid = r
+	}
+
+	return changesMade
 }
 
 func (p *Puzzle) countAdjacentOccupied(k string) int {

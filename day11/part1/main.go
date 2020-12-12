@@ -7,8 +7,6 @@ import (
 	"fmt"
 	"io/ioutil"
 	"log"
-	"reflect"
-	"strconv"
 	"strings"
 )
 
@@ -29,14 +27,7 @@ func main() {
 func process(filename string) {
 	puz := readPuzzle(filename)
 
-	for {
-		logf("grid:\n%v", puz)
-		newGrid := puz.iterate()
-		if reflect.DeepEqual(newGrid, puz.grid) {
-			break
-		}
-		puz.grid = newGrid
-		logf("newGrid:\n%v", puz)
+	for puz.iterate() {
 	}
 
 	occupied := puz.occupied()
@@ -54,24 +45,32 @@ func (p *Puzzle) occupied() int {
 	return count
 }
 
-func (p *Puzzle) iterate() map[string]string {
+func (p *Puzzle) iterate() bool {
 	r := map[string]string{}
+	var changesMade bool
 	for k, v := range p.grid {
 		adj := p.countAdjacentOccupied(k)
 		// log.Printf("k=%v, v=%v, adj=%v", k, v, adj)
 		if v == "L" && adj == 0 {
 			r[k] = "#"
+			changesMade = true
 		} else if v == "#" && adj >= 4 {
 			r[k] = "L"
+			changesMade = true
 		} else {
 			r[k] = v
 		}
 	}
-	return r
+
+	if changesMade {
+		p.grid = r
+	}
+
+	return changesMade
 }
 
 func (p *Puzzle) countAdjacentOccupied(k string) int {
-	x, y := parseKey(k)
+	x, y := p.parseKey(k)
 	var adj int
 
 	t := func(x, y int) {
@@ -98,6 +97,8 @@ type Puzzle struct {
 	width  int
 	height int
 	grid   map[string]string
+	keyX   map[string]int
+	keyY   map[string]int
 }
 
 func (p *Puzzle) String() string {
@@ -121,7 +122,7 @@ func readPuzzle(filename string) *Puzzle {
 	buf, err := ioutil.ReadFile(filename)
 	check("ReadFile: %v", err)
 
-	puz := &Puzzle{grid: map[string]string{}}
+	puz := &Puzzle{grid: map[string]string{}, keyX: map[string]int{}, keyY: map[string]int{}}
 	lines := strings.Split(string(buf), "\n")
 	for y, line := range lines {
 		if line == "" {
@@ -133,6 +134,8 @@ func readPuzzle(filename string) *Puzzle {
 			if line[x:x+1] == "L" {
 				key := genKey(x, y)
 				puz.grid[key] = "L"
+				puz.keyX[key] = x
+				puz.keyY[key] = y
 			}
 		}
 	}
@@ -148,14 +151,8 @@ func genKey(x, y int) string {
 	return fmt.Sprintf("%v,%v", y, x)
 }
 
-func parseKey(key string) (x, y int) {
-	parts := strings.Split(key, ",")
-	var err error
-	x, err = strconv.Atoi(parts[1])
-	check("key=%q parseKey(%q).x: %v", key, parts[1], err)
-	y, err = strconv.Atoi(parts[0])
-	check("key=%q parseKey(%q).y: %v", key, parts[0], err)
-	return x, y
+func (p *Puzzle) parseKey(key string) (x, y int) {
+	return p.keyX[key], p.keyY[key]
 }
 
 func check(fmtStr string, args ...interface{}) {
