@@ -1,11 +1,6 @@
 // -*- compile-command: "v run main.v ../example1.txt ../input.txt"; -*-
 import os
 
-const (
-	rights = [1, 3, 5, 7, 1]
-	downs  = [1, 1, 1, 1, 2]
-)
-
 fn main() {
 	for arg in os.args[1..] {
 		process(arg)
@@ -17,7 +12,9 @@ struct Puzzle {
 mut:
 	width  int
 	height int
-	grid   map[string]bool
+	grid   map[string]rune
+	key_x map[string]int
+	key_y map[string]int
 }
 
 fn process(filename string) {
@@ -28,38 +25,73 @@ fn process(filename string) {
 		puz.width = line.len
 		puz.height++
 		for x := 0; x < line.len; x++ {
-			if line[x] == `#` {
+			if line[x] == `L` {
 				key := gen_key(x, y)
-				puz.grid[key] = true
+				puz.grid[key] = `L`
+				puz.key_x[key] = x
+				puz.key_y[key] = y
 			}
 		}
 	}
-	mut result := i64(1)
-	for i := 0; i < rights.len; i++ {
-		count := puz.count_trees(rights[i], downs[i])
-		result *= count
-	}
-	println('Solution: $result')
-}
-
-fn (p &Puzzle) count_trees(right int, down int) int {
-	mut pos_x, mut pos_y, mut count := 0, 0, 0
-	for y := 0; y < p.height; y++ {
-		if p.lookup(pos_x, pos_y) {
-			count++
-		}
-		pos_x += right
-		pos_y += down
-	}
-	println('($right,$down): Found $count trees')
-	return count
+	for puz.iterate() {}
+	occupied := puz.occupied()
+	println('Solution: $occupied')
 }
 
 fn gen_key(x int, y int) string {
 	return '$x,$y'
 }
 
-fn (p &Puzzle) lookup(x int, y int) bool {
-	key := gen_key(x % p.width, y)
-	return p.grid[key]
+fn (mut p Puzzle) iterate() bool {
+	mut r := map[string]rune{}
+	mut changes_made := false
+	for k, v in p.grid {
+		adj := p.count_adjacent_occupied(k)
+		if v == `L` && adj == 0 {
+			r[k] = `#`
+			changes_made = true
+		} else if v == `#` && adj >= 4 {
+			r[k] = `L`
+			changes_made = true
+		} else {
+			r[k] = v
+		}
+	}
+	if changes_made {
+		p.grid = r
+	}
+	return !changes_made
+}
+
+fn (p &Puzzle) count_adjacent_occupied(k string) int {
+	x := p.key_x[k]
+	y := p.key_x[k]
+	mut adj := 0
+
+	t := fn(x int, y int) {
+		new_k := gen_key(x, y)
+		if p.grid[new_k] == `#` {
+			adj++
+		}
+	}
+
+	t(x-1, y-1)
+	t(x, y-1)
+	t(x+1, y-1)
+	t(x-1, y)
+
+	t(x+1, y)
+	t(x-1, y+1)
+	t(x, y+1)
+	t(x+1, y+1)
+
+	return adj
+}
+
+fn (p &Puzzle) occupied() int {
+	mut count := 0
+	for _, v in p.grid {
+		if v == `#` { count++ }
+	}
+	return count
 }
