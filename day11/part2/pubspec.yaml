@@ -4,5 +4,4 @@ environment:
   sdk: '>=2.10.0 <3.0.0'
 
 dependencies:
-  collection: ^1.14.13
   tuple: ^1.0.3

@@ -2,7 +2,6 @@
 
 import 'dart:io';
 
-import 'package:collection/equality.dart';
 import 'package:tuple/tuple.dart';
 
 main(List<String> args) {
@@ -18,13 +17,7 @@ process(String filename) {
 
   var puz = Puzzle(filename);
 
-  while (true) {
-    var newGrid = puz.iterate();
-    if (MapEquality().equals(puz.grid, newGrid)) {
-      break;
-    }
-    puz.grid = newGrid;
-  }
+  while (puz.iterate()) {}
 
   var occupied = puz.occupied();
 
@@ -51,19 +44,27 @@ class Puzzle {
     }
   }
 
-  Map<Tuple2<int,int>,String> iterate() {
+  bool iterate() {
     var r = Map<Tuple2<int,int>,String>();
+    var changesMade = false;
     grid.forEach((k, v) {
         var adj = countAdjacentOccupied(k);
         if (v == 'L' && adj == 0) {
           r[k] = '#';
+          changesMade = true;
         } else if (v == '#' && adj >= 5) {
           r[k] = 'L';
+          changesMade = true;
         } else {
           r[k] = v;
         }
     });
-    return r;
+
+    if (changesMade) {
+      grid = r;
+    }
+
+    return changesMade;
   }
 
   bool adjacent(int x, int dx, int y, int dy) {
