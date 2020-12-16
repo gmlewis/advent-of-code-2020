@@ -32,7 +32,6 @@ func process(filename string) {
 	parts := strings.Split(strings.TrimSpace(string(buf)), ",")
 	var turn int
 	var lastSpoken int
-	// numSpoken := map[int]int{}
 	// whenSpoken lists the last times this value was spoken
 	whenSpoken := map[int][]int{}
 	for _, part := range parts {
@@ -41,9 +40,7 @@ func process(filename string) {
 		turn++
 		lastSpoken = v
 		whenSpoken[lastSpoken] = append(whenSpoken[lastSpoken], turn)
-		// numSpoken[v]++
 	}
-	log.Printf("whenSpoken: %#v", whenSpoken)
 
 	for {
 		numLastSpoken := len(whenSpoken[lastSpoken])
