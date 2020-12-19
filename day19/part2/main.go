@@ -45,7 +45,7 @@ func process(filename string) {
 		check("n: %v", err)
 		if strings.HasPrefix(p1[1], ` "`) {
 			s := p1[1][2:3]
-			rules[n] = &node{s: s, matches: map[string]int{s: 1}}
+			rules[n] = &node{s: s, matches: map[string]bool{s: true}}
 			// log.Printf("rules[%v] = %#v", n, rules[n])
 			continue
 		}
@@ -80,13 +80,13 @@ func process(filename string) {
 
 func match(s string, ruleN int, lastMatch int, rules map[int]*node) (int, int, bool) {
 	rule := rules[ruleN]
-	logf("ENTER: MATCH rule %v lastMatch=%v, %v: %v", ruleN, lastMatch, s, *rule)
+	logf("ENTER: MATCH ruleN=%v lastMatch=%v, %v[%v]: %v", ruleN, lastMatch, s, len(s), *rule)
 
 	cacheMatch := -1
-	for k, v := range rule.matches {
+	for k := range rule.matches {
 		if len(s) >= len(k) && strings.HasPrefix(s, k) {
-			logf("CACHE: LEAVE: MATCH rule %v lastMatch=%v, %v: %v = (%v,true)", ruleN, lastMatch, s, *rule, v)
-			cacheMatch = v
+			logf("CACHE: LEAVE: MATCH ruleN=%v lastMatch=%v, %v[%v]: %v = (%v,true)", ruleN, lastMatch, s, len(s), *rule, len(k))
+			cacheMatch = len(k)
 			break
 		}
 	}
@@ -95,12 +95,12 @@ func match(s string, ruleN int, lastMatch int, rules map[int]*node) (int, int, b
 	}
 
 	if len(s) == 0 {
-		logf("A: LEAVE: MATCH rule %v lastMatch=%v, %v: %v = (0,false)", ruleN, lastMatch, s, *rule)
+		logf("A: LEAVE: MATCH ruleN=%v lastMatch=%v, %v[%v]: %v = (0,false)", ruleN, lastMatch, s, len(s), *rule)
 		return 0, lastMatch, false
 	}
 
 	if rule.s != "" {
-		logf("B: LEAVE: MATCH rule %v lastMatch=%v, %v: %v = (1,%v)", ruleN, lastMatch, s, *rule, s[0:1] == rule.s)
+		logf("B: LEAVE: MATCH ruleN=%v lastMatch=%v, %v[%v]: %v = (1,%v)", ruleN, lastMatch, s, len(s), *rule, s[0:1] == rule.s)
 		if s[0:1] == rule.s {
 			lastMatch = ruleN
 		}
@@ -112,33 +112,46 @@ func match(s string, ruleN int, lastMatch int, rules map[int]*node) (int, int, b
 	logf("matchSeq %v seq1 %v = (%v,lastMatch=%v,%v)", s, rule.seq1, n, lm, ok)
 	if ok {
 		lastMatch = lm
-		rule.matches[s] = n
+		rule.matches[s[:n]] = true
 		if ruleN == 8 || ruleN == 11 {
-			logf("C: ENTER SPECIAL CASE!!! %v %v: %v = (%v,lastMatch=%v,true)", ruleN, s, *rule, n, lastMatch)
+			logf("C: ENTER SPECIAL CASE!!! ruleN=%v s=%v[%v]: %v = (%v,lastMatch=%v,true)", ruleN, s, len(s), *rule, n, lastMatch)
 			for len(s) > n {
 				tmp := s[n:]
+				logf("ENTER ITERATE SPECIAL CASE!!! calling match(%v[%v],%v,%v): %v", tmp, len(tmp), 42, lastMatch, *rule)
 				if nv, lm, ok := match(tmp, 42, lastMatch, rules); ok {
-					logf("ITERATE SPECIAL CASE!!! %v %v: %v = (%v,lastMatch=%v,true)", 42, tmp, *rule, nv, lm)
+					logf("LEAVE ITERATE SPECIAL CASE!!! %v %v[%v]: %v = (%v,lastMatch=%v,true)", 42, tmp, len(tmp), *rule, nv, lm)
 					lastMatch = lm
 					n += nv
 				} else {
 					break
 				}
 			}
-			logf("C: LEAVE SPECIAL CASE!!! %v lastMatch=%v, %v: %v = (%v,lastMatch=%v,true)", ruleN, lastMatch, s, *rule, lastMatch, n)
+			logf("C: LEAVE SPECIAL CASE!!! ruleN=%v lastMatch=%v, %v[%v]: %v = (%v,lastMatch=%v,true)", ruleN, lastMatch, s, len(s), *rule, n, lastMatch)
 		} else {
-			logf("C: LEAVE: MATCH rule %v lastMatch=%v, %v: %v = (%v,lastMatch=%v,true)", ruleN, lastMatch, s, *rule, lastMatch, n)
+			logf("C: LEAVE: MATCH ruleN=%v lastMatch=%v, %v[%v]: %v = (%v,lastMatch=%v,true)", ruleN, lastMatch, s, len(s), *rule, n, lastMatch)
 		}
 
 		return n, lastMatch, true
 	} else {
-		if ruleN == 11 && (lastMatch == 8 || lastMatch == 11 || lastMatch == 42) {
-			logf("C1: SUPER SPECIAL CASE!!! %v %v: %v = (%v,lastMatch=%v,true)", ruleN, s, *rule, n, lastMatch)
-			if nv, lm, ok := match(s, 31, lastMatch, rules); ok {
-				logf("C1: WOOHOO SPECIAL CASE!!! %v %v: %v = (%v,lastMatch=%v,true)", 31, s, *rule, nv, lm)
-				lastMatch = lm
-				return nv, 31, true
+		if ruleN == 11 && (lastMatch == 8 || lastMatch == 42) {
+			logf("C1: ENTER SUPER SPECIAL CASE!!! %v %v: %v = (%v,lastMatch=%v,true)", ruleN, s, *rule, n, lastMatch)
+			logf("rules[8].matches = %v", rules[8].matches)
+			logf("rules[11].matches = %v", rules[11].matches)
+			logf("rules[42].matches = %v", rules[42].matches)
+			for k := range rules[42].matches {
+				if strings.HasPrefix(s, k) {
+					log.Printf("rules[42].matches[%v] !!!", k)
+					s = s[len(k):]
+					n = len(k)
+					break
+				}
 			}
+			if nv, lm, ok := match(s, 31, lastMatch, rules); ok {
+				logf("C1: WOOHOO SPECIAL CASE!!! %v %v: %v = (%v,lastMatch=%v,true)", 31, s, *rule, n+nv, lm)
+				lastMatch = lm
+				return n + nv, 31, true
+			}
+			logf("C1: LEAVE SUPER SPECIAL CASE!!! %v %v: %v = (%v,lastMatch=%v,true)", ruleN, s, *rule, n, lastMatch)
 		}
 	}
 
@@ -149,7 +162,7 @@ func match(s string, ruleN int, lastMatch int, rules map[int]*node) (int, int, b
 		if ok {
 			lastMatch = lm
 			logf("D: LEAVE: MATCH rule %v %v: %v = (%v,lastMatch=%v,true)", ruleN, s, *rule, n, lm)
-			rule.matches[s] = n
+			rule.matches[s[:n]] = true
 			return n, lastMatch, true
 		}
 	}
@@ -178,14 +191,14 @@ func matchSeq(s string, seq []int, lastMatch int, rules map[int]*node) (int, int
 		logf("sub match rule %v %v = (%v,lastMatch=%v...but setting to %v,%v)", ruleN, s, n, lm, ruleN, ok)
 		lastMatch = ruleN
 		numChars += n
-		logf("s=%v len(s)=%v, numChars=%v", s, len(s), numChars)
+		logf("s=%v[%v], numChars=%v", s, len(s), numChars)
 		s = s[n:]
 	}
 	return numChars, lastMatch, true
 }
 
 func parseRule(s string) *node {
-	rule := &node{matches: map[string]int{}}
+	rule := &node{matches: map[string]bool{}}
 	seq := &rule.seq1
 	parts := strings.Split(strings.TrimSpace(s), " ")
 	for _, part := range parts {
@@ -204,7 +217,7 @@ func parseRule(s string) *node {
 type node struct {
 	s string
 
-	matches map[string]int
+	matches map[string]bool
 
 	seq1 []int
 	seq2 []int
