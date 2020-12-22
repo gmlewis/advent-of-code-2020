@@ -63,8 +63,8 @@ func process(filename string) {
 			vals = append(vals, v2)
 		}
 
-		tiles[keys[0]].connections[k] = connector{fromSide: vals[0], toID: keys[1], toSide: vals[1]}
-		tiles[keys[1]].connections[k] = connector{fromSide: vals[1], toID: keys[0], toSide: vals[0]}
+		tiles[keys[0]].connections[k] = &connector{fromSide: vals[0], toID: keys[1], toSide: vals[1]}
+		tiles[keys[1]].connections[k] = &connector{fromSide: vals[1], toID: keys[0], toSide: vals[0]}
 	}
 
 	for k, v := range tiles {
@@ -81,12 +81,279 @@ func process(filename string) {
 
 	puz := &puzT{tiles: map[key]*tileT{}}
 	for k, v := range tiles {
-		if len(v.connections) == 2 && isUpperLeft(v) {
-			log.Printf("UPPER LEFT: corners[%v] = %v", k, v.connections)
+		if len(v.connections) == 2 && isLowerLeft(v) {
+			log.Printf("LOWER LEFT: corners[%v] = %v", k, v.connections)
 			puz.tiles[key{x: 0, y: 0}] = v
 			break
 		}
 	}
+
+	puz.findRightAndUp(key{x: 0, y: 0}, tiles)
+
+	image := puz.render()
+	log.Printf("image: %v", image)
+}
+
+func (p *puzT) render() *tileT {
+	image := &tileT{dots: map[key]bool{}}
+	for k, t := range p.tiles {
+		log.Printf("Rendering tile %v (%v,%v)", k, t.width, t.height)
+		for k2 := range t.dots {
+			if k2.x == 0 && k2.y == 0 || k2.x == t.width-1 || k2.y == t.height-1 {
+				continue // remove border
+			}
+			x := k.x*(t.width-2) + k2.x - 1
+			y := k.y*(t.height-2) + k2.y - 1
+			image.dots[key{x: x, y: y}] = true
+			if x >= image.width {
+				image.width = x + 1
+			}
+			if y >= image.height {
+				image.height = y + 1
+			}
+		}
+	}
+	return image
+}
+
+func (p *puzT) findRightAndUp(k key, tiles map[int]*tileT) {
+	t := p.tiles[k]
+	if t == nil {
+		return
+	}
+
+	upKey := key{x: k.x, y: k.y + 1}
+	rightKey := key{x: k.x + 1, y: k.y}
+	for _, v := range t.connections {
+		switch v.fromSide {
+		case "nSig", "nRevSig":
+			if _, ok := p.tiles[upKey]; ok {
+				continue
+			}
+			up := tiles[v.toID]
+			log.Printf("BEFORE: found up from %v to %v: %v", v.fromSide, v.toSide, up)
+			p.tiles[upKey] = rotateAndFlip(v.fromSide, v.toSide, up)
+			log.Printf("AFTER: found up from %v to %v: %v", v.fromSide, v.toSide, p.tiles[upKey])
+		case "eSig", "eRevSig":
+			if _, ok := p.tiles[rightKey]; ok {
+				continue
+			}
+			right := tiles[v.toID]
+			log.Printf("BEFORE: found right from %v to %v: %v", v.fromSide, v.toSide, right)
+			p.tiles[rightKey] = rotateAndFlip(v.fromSide, v.toSide, right)
+			log.Printf("AFTER: found right from %v to %v: [%v]=%v", v.fromSide, v.toSide, rightKey, p.tiles[rightKey])
+		default:
+			// log.Printf("key=%v, t.id=%v, unhandled fromSig: %v", k, t.id, v)
+		}
+	}
+
+	p.findRightAndUp(upKey, tiles)
+	p.findRightAndUp(rightKey, tiles)
+}
+
+func rotateAndFlip(fromSide, toSide string, t *tileT) *tileT {
+	fromTo := fmt.Sprintf("%v,%v", fromSide, toSide)
+	switch fromTo {
+	case "eSig,eRevSig", "eRevSig,eSig", "wSig,wRevSig", "wRevSig,wSig", "nRevSig,nSig", "nSig,nRevSig", "sRevSig,sSig", "sSig,sRevSig":
+		return rot180(t)
+	case "nSig,wSig", "nRevSig,wRevSig":
+		return rotLeft(t)
+	case "eSig,wSig", "eRevSig,wRevSig", "nSig,sSig", "nRevSig,sRevSig":
+		return t
+	case "eRevSig,sRevSig", "eSig,sSig":
+		return rotRight(t)
+	case "eSig,wRevSig", "eRevSig,wSig":
+		return mirrorY(t)
+	case "eRevSig,eRevSig", "eSig,eSig", "wRevSig,wRevSig", "wSig,wSig", "nSig,sRevSig", "nRevSig,sSig", "sSig,nRevSig", "sRevSig,nSig":
+		return mirrorX(t)
+	default:
+		log.Fatalf("unhandled fromTo: case %q:", fromTo)
+	}
+	return t
+}
+
+func mirrorX(t *tileT) *tileT {
+	cp := t.copyTile()
+	xform(cp, t, func(k key) key {
+		return key{x: t.width - 1 - k.x, y: k.y}
+	})
+	log.Printf("BEFORE: mirrorX: %v", cp.connections)
+	for _, v := range cp.connections {
+		switch v.fromSide {
+		case "sSig":
+			v.fromSide = "sRevSig"
+		case "sRevSig":
+			v.fromSide = "sSig"
+		case "nSig":
+			v.fromSide = "nRevSig"
+		case "nRevSig":
+			v.fromSide = "nSig"
+		case "wSig":
+			v.fromSide = "eSig"
+		case "wRevSig":
+			v.fromSide = "eRevSig"
+		case "eSig":
+			v.fromSide = "wSig"
+		case "eRevSig":
+			v.fromSide = "wRevSig"
+		default:
+			log.Fatalf("mirrorX: unhandled case %q:", v.fromSide)
+		}
+	}
+	log.Printf("AFTER: mirrorX: %v", cp.connections)
+	return cp
+}
+
+func mirrorY(t *tileT) *tileT {
+	cp := t.copyTile()
+	xform(cp, t, func(k key) key {
+		return key{x: k.x, y: t.height - 1 - k.y}
+	})
+	log.Printf("BEFORE: mirrorY: %v", cp.connections)
+	for _, v := range cp.connections {
+		switch v.fromSide {
+		case "sSig":
+			v.fromSide = "nSig"
+		case "sRevSig":
+			v.fromSide = "nRevSig"
+		case "nSig":
+			v.fromSide = "sSig"
+		case "nRevSig":
+			v.fromSide = "sRevSig"
+		case "wSig":
+			v.fromSide = "wRevSig"
+		case "wRevSig":
+			v.fromSide = "wSig"
+		case "eSig":
+			v.fromSide = "eRevSig"
+		case "eRevSig":
+			v.fromSide = "eSig"
+		default:
+			log.Fatalf("mirrorY: unhandled case %q:", v.fromSide)
+		}
+	}
+	log.Printf("AFTER: mirrorY: %v", cp.connections)
+	return cp
+}
+
+func rot180(t *tileT) *tileT {
+	cp := t.copyTile()
+	xform(cp, t, func(k key) key {
+		return key{x: t.width - 1 - k.x, y: t.height - 1 - k.y}
+	})
+	log.Printf("BEFORE: rot180: %v", cp.connections)
+	for _, v := range cp.connections {
+		switch v.fromSide {
+		case "sSig":
+			v.fromSide = "nRevSig"
+		case "sRevSig":
+			v.fromSide = "nSig"
+		case "nSig":
+			v.fromSide = "sRevSig"
+		case "nRevSig":
+			v.fromSide = "sSig"
+		case "wSig":
+			v.fromSide = "eRevSig"
+		case "wRevSig":
+			v.fromSide = "eSig"
+		case "eSig":
+			v.fromSide = "wRevSig"
+		case "eRevSig":
+			v.fromSide = "wSig"
+		default:
+			log.Fatalf("rot180: unhandled case %q:", v.fromSide)
+		}
+	}
+	log.Printf("AFTER: rot180: %v", cp.connections)
+	return cp
+}
+
+func rotLeft(t *tileT) *tileT {
+	cp := t.copyTile()
+	xform(cp, t, func(k key) key {
+		return key{x: t.height - 1 - k.y, y: k.x}
+	})
+	log.Printf("BEFORE: rotLeft: %v", cp.connections)
+	for _, v := range cp.connections {
+		switch v.fromSide {
+		case "wSig":
+			v.fromSide = "sSig"
+		case "wRevSig":
+			v.fromSide = "sRevSig"
+		case "sSig":
+			v.fromSide = "eRevSig"
+		case "sRevSig":
+			v.fromSide = "eSig"
+		case "eSig":
+			v.fromSide = "nSig"
+		case "eRevSig":
+			v.fromSide = "nRevSig"
+		case "nSig":
+			v.fromSide = "wRevSig"
+		case "nRevSig":
+			v.fromSide = "wSig"
+		default:
+			log.Fatalf("rotLeft: unhandled case %q:", v.fromSide)
+		}
+	}
+	log.Printf("AFTER: rotLeft: %v", cp.connections)
+	return cp
+}
+
+func rotRight(t *tileT) *tileT {
+	cp := t.copyTile()
+	xform(cp, t, func(k key) key {
+		return key{x: t.height - 1 - k.y, y: k.x}
+	})
+	log.Printf("BEFORE: rotRight: %v", cp.connections)
+	for _, v := range cp.connections {
+		switch v.fromSide {
+		case "wSig":
+			v.fromSide = "nRevSig"
+		case "wRevSig":
+			v.fromSide = "nSig"
+		case "sSig":
+			v.fromSide = "wSig"
+		case "sRevSig":
+			v.fromSide = "eRevSig"
+		case "eSig":
+			v.fromSide = "sRevSig"
+		case "eRevSig":
+			v.fromSide = "sSig"
+		case "nSig":
+			v.fromSide = "eSig"
+		case "nRevSig":
+			v.fromSide = "eRevSig"
+		default:
+			log.Fatalf("rotRight: unhandled case %q:", v.fromSide)
+		}
+	}
+	log.Printf("AFTER: rotRight: %v", cp.connections)
+	return cp
+}
+
+func xform(cp, t *tileT, f func(key) key) {
+	for k := range t.dots {
+		newKey := f(k)
+		// log.Printf("xform %v => %v", k, newKey)
+		cp.dots[newKey] = true
+	}
+}
+
+func (t *tileT) copyTile() *tileT {
+	cp := &tileT{
+		id:          t.id,
+		dots:        map[key]bool{},
+		width:       t.width,
+		height:      t.height,
+		connections: map[string]*connector{},
+		x:           t.x,
+		y:           t.y,
+	}
+	for k, v := range t.connections {
+		cp.connections[k] = &connector{fromSide: v.fromSide, toID: v.toID, toSide: v.toSide}
+	}
+	return cp
 }
 
 type connector struct {
@@ -104,6 +371,16 @@ func isUpperLeft(t *tileT) bool {
 	return true
 }
 
+func isLowerLeft(t *tileT) bool {
+	for k := range t.connections {
+		if k == t.sSig || k == t.sRevSig || k == t.wSig || k == t.wRevSig {
+			return false
+		}
+	}
+	return true
+}
+
+/*
 func renderPuzzle(corner int, tiles map[int]*tileT, signatures map[string]map[int]string) *puzT {
 	t := tiles[corner]
 	puz := &puzT{tiles: map[key]*tileT{}}
@@ -290,6 +567,7 @@ func findMate(t *tileT, c string, pairs map[int]string, tiles map[int]*tileT) *t
 	log.Fatalf("findMate failed")
 	return nil
 }
+*/
 
 func (p *puzT) searchPuzzle() (monsters, roughWater int) {
 	return monsters, roughWater
@@ -314,11 +592,11 @@ type tileT struct {
 	eRevSig string
 	wRevSig string
 
-	connections map[string]connector
+	connections map[string]*connector
 
-	x           int
-	y           int
-	orientation string
+	x int
+	y int
+	// orientation string
 }
 
 func parseTile(s string, signatures map[string]map[int]string) *tileT {
@@ -327,7 +605,7 @@ func parseTile(s string, signatures map[string]map[int]string) *tileT {
 	id, err := strconv.Atoi(idStr)
 	check("id: %v", err)
 
-	t := &tileT{id: id, dots: map[key]bool{}, connections: map[string]connector{}}
+	t := &tileT{id: id, dots: map[key]bool{}, connections: map[string]*connector{}}
 	var eastSig string
 	var westSig string
 	var southSig string
@@ -383,7 +661,7 @@ func (t *tileT) addSignature(name, sig string, signatures map[string]map[int]str
 }
 
 func (t *tileT) String() string {
-	lines := []string{fmt.Sprintf("Tile %v:", t.id)}
+	lines := []string{fmt.Sprintf("Tile %v (%v,%v):", t.id, t.width, t.height)}
 	lines = append(lines, fmt.Sprintf("nSig: %v nRevSig: %v", t.nSig, t.nRevSig))
 	lines = append(lines, fmt.Sprintf("sSig: %v sRevSig: %v", t.sSig, t.sRevSig))
 	lines = append(lines, fmt.Sprintf("eSig: %v eRevSig: %v", t.eSig, t.eRevSig))
