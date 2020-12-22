@@ -54,7 +54,7 @@ func process(filename string) {
 			log.Fatalf("signature[%v] = %v", k, v)
 		}
 
-		logf("signature[%v] = %v", k, v)
+		log.Printf("signature[%v] = %v", k, v)
 
 		keys := []int{}
 		vals := []string{}
@@ -67,16 +67,24 @@ func process(filename string) {
 		tiles[keys[1]].connections[k] = connector{fromSide: vals[1], toID: keys[0], toSide: vals[0]}
 	}
 
-	// corners := map[int]bool{}
 	for k, v := range tiles {
 		if len(v.connections) == 2 {
-			// corners[k] = true
 			log.Printf("corners[%v] = %v", k, v.connections)
-			// render := renderPuzzle(k, tiles, signatures)
-			// monsters, roughWater := render.searchPuzzle()
-			// log.Printf("corners[%v] = %v: monsters=%v, roughWater=%v", k, v.connections, monsters, roughWater)
+		} else if len(v.connections) == 3 {
+			log.Printf("edge[%v] = %v", k, v.connections)
+		} else if len(v.connections) == 4 {
+			log.Printf("inner[%v] = %v", k, v.connections)
 		} else {
-			log.Printf("non-corner: tiles[%v] = %v", k, v.connections)
+			log.Fatalf("unknown[%v] = %v", k, v.connections)
+		}
+	}
+
+	puz := &puzT{tiles: map[key]*tileT{}}
+	for k, v := range tiles {
+		if len(v.connections) == 2 && isUpperLeft(v) {
+			log.Printf("UPPER LEFT: corners[%v] = %v", k, v.connections)
+			puz.tiles[key{x: 0, y: 0}] = v
+			break
 		}
 	}
 }
@@ -85,6 +93,15 @@ type connector struct {
 	fromSide string
 	toID     int
 	toSide   string
+}
+
+func isUpperLeft(t *tileT) bool {
+	for k := range t.connections {
+		if k == t.nSig || k == t.nRevSig || k == t.wSig || k == t.wRevSig {
+			return false
+		}
+	}
+	return true
 }
 
 func renderPuzzle(corner int, tiles map[int]*tileT, signatures map[string]map[int]string) *puzT {
@@ -135,21 +152,75 @@ func renderPuzzle(corner int, tiles map[int]*tileT, signatures map[string]map[in
 	puz.tiles[key{x: t.x, y: t.y}] = t
 	log.Printf("starting corner: (%v,%v) (%v,%v) %v", t.x, t.y, dx, dy, tiles[corner])
 
-	seen := map[int]bool{}
-	for len(puz.tiles) < len(tiles) {
-		for _, tile := range puz.tiles {
-			if seen[tile.id] {
-				continue
-			}
-			seen[tile.id] = true
-			xn := xNeighbor(tile, dx, signatures, tiles)
-			puz.tiles[key{x: xn.x, y: xn.y}] = xn
-			yn := yNeighbor(tile, dy, signatures, tiles)
-			puz.tiles[key{x: yn.x, y: yn.y}] = yn
-		}
-	}
+	// seen := map[int]bool{}
+	// for len(puz.tiles) < len(tiles) {
+	// 	for _, tile := range puz.tiles {
+	// 		if seen[tile.id] {
+	// 			continue
+	// 		}
+	// 		seen[tile.id] = true
+	// 		xn, yn := mates(tile, dx, dy, signatures, tiles)
+	// 		// xn := xNeighbor(tile, dx, signatures, tiles)
+	// 		puz.tiles[key{x: xn.x, y: xn.y}] = xn
+	// 		// yn := yNeighbor(tile, dy, signatures, tiles)
+	// 		puz.tiles[key{x: yn.x, y: yn.y}] = yn
+	// 	}
+	// }
 
 	return puz
+}
+
+func mates(t *tileT, dx, dy int, signatures map[string]map[int]string, tiles map[int]*tileT) (xMate, yMate *tileT) {
+	// No orientation changes.
+	for _, v := range t.connections {
+		switch v.fromSide {
+		case "wSig", "wRevSig", "eSig", "eRevSig":
+			xMate = tiles[v.toID]
+			xMate.x, xMate.y = t.x+dx, t.y
+			xMate.setXOrientation(t.orientation, v.fromSide, v.toSide)
+		case "nSig", "nRevSig", "sSig", "sRevSig":
+			yMate = tiles[v.toID]
+			yMate.x, yMate.y = t.x, t.y+dy
+			yMate.setYOrientation(t.orientation, v.fromSide, v.toSide)
+		default:
+			log.Fatalf("unhandled v.fromSize=%v", v.fromSide)
+		}
+	}
+	return xMate, yMate
+}
+
+func (t *tileT) setXOrientation(fromOrientation, fromSide, toSide string) {
+	key := fmt.Sprintf("%v,%v,%v", fromOrientation, fromSide, toSide)
+	switch key {
+	case ",wSig,eSig", ",wRevSig,eRevSig":
+		t.orientation = ""
+	case ",wSig,wRevSig", ",wRevSig,wSig":
+		t.orientation = "Rot180"
+	case ",eSig,wRevSig", ",eRevSig,wSig", ",wSig,eRevSig", ",wRevSig,eSig":
+		t.orientation = "MirrorY"
+	case ",eRevSig,wRevSig", ",eSig,wSig":
+		t.orientation = ""
+	case ",wRevSig,sRevSig", ",wSig,sSig":
+		t.orientation = "RotRight"
+	default:
+		log.Fatalf("setXOrientation: unhandled: case %q:", key)
+	}
+}
+
+func (t *tileT) setYOrientation(fromOrientation, fromSide, toSide string) {
+	key := fmt.Sprintf("%v,%v,%v", fromOrientation, fromSide, toSide)
+	switch key {
+	case ",sSig,nSig", ",sRevSig,nRevSig", ",nRevSig,sRevSig", ",nSig,sSig":
+		t.orientation = ""
+	case ",sSig,wRevSig", ",sRevSig,wSig":
+		t.orientation = "RotLeft+MirrorX"
+	case ",nRevSig,eRevSig", ",nSig,eSig":
+		t.orientation = "RotLeft+MirrorX"
+	case ",wSig,wRevSig", ",wRevSig,wSig":
+		t.orientation = "Rot180"
+	default:
+		log.Fatalf("setYOrientation: unhandled: case %q:", key)
+	}
 }
 
 func xNeighbor(t *tileT, dx int, signatures map[string]map[int]string, tiles map[int]*tileT) *tileT {
@@ -245,8 +316,9 @@ type tileT struct {
 
 	connections map[string]connector
 
-	x int
-	y int
+	x           int
+	y           int
+	orientation string
 }
 
 func parseTile(s string, signatures map[string]map[int]string) *tileT {
@@ -271,8 +343,8 @@ func parseTile(s string, signatures map[string]map[int]string) *tileT {
 			t.nRevSig = reverse(line)
 			t.addSignature("nRevSig", t.nRevSig, signatures)
 		}
-		eastSig += line[0:1]
-		westSig += line[len(line)-1 : len(line)]
+		westSig += line[0:1]
+		eastSig += line[len(line)-1 : len(line)]
 		southSig = line
 
 		t.width = len(line)
@@ -299,7 +371,7 @@ func parseTile(s string, signatures map[string]map[int]string) *tileT {
 	t.sRevSig = reverse(southSig)
 	t.addSignature("sRevSig", t.sRevSig, signatures)
 
-	logf("parsed:\n%v", t)
+	log.Printf("parsed:\n%v", t)
 	return t
 }
 
