@@ -15,7 +15,7 @@ fn process(filename string) {
 	mut ints := map[string]bool{}
 	mut max := 0
 	for line in lines {
-		n := strconv.atoi(line)
+		n := strconv.atoi(line) or { panic(err) }
 		ints['$n'] = true
 		if n > max {
 			max = n

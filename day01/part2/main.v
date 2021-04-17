@@ -14,7 +14,7 @@ fn process(filename string) {
 	lines := os.read_lines(filename) or { panic(err) }
 	mut vals := map[string]bool{}
 	for line in lines {
-		v := strconv.atoi(line)
+		v := strconv.atoi(line) or { panic(err) }
 		if find(v, vals) {
 			break
 		}
@@ -24,7 +24,8 @@ fn process(filename string) {
 
 fn find(v int, vals map[string]bool) bool {
 	for d2, _ in vals {
-		v2 := 2020 - strconv.atoi(d2)
+		d2v := strconv.atoi(d2) or { panic(err) }
+		v2 := 2020 - d2v
 		if vals['${v + v2}'] {
 			println('$v + $v2 + ${2020 - v - v2} = 2020\n$v * $v2 * ${2020 - v - v2} = ${v * v2 *
 				(2020 - v - v2)}')

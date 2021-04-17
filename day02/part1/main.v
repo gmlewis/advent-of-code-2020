@@ -38,7 +38,7 @@ fn valid(start int, end int, letter string, passwd string) bool {
 
 fn re_int_field(re regex.RE, line string, n int) int {
 	f := re_field(re, line, n)
-	return strconv.atoi(f)
+	return strconv.atoi(f) or { panic(err) }
 }
 
 fn re_field(re regex.RE, line string, n int) string {

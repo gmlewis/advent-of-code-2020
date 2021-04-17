@@ -7,7 +7,7 @@ fn main() {
 		println('usage: v run main.v -p 25 ../input.txt')
 		return
 	}
-	preamble := strconv.atoi(os.args[2])
+	preamble := strconv.atoi(os.args[2]) or { panic(err) }
 	process(os.args[3], preamble)
 	println('Done.')
 }
@@ -17,7 +17,7 @@ fn process(filename string, preamble int) {
 	lines := os.read_lines(filename) or { panic(err) }
 	mut ints := []int{}
 	for line in lines {
-		n := strconv.atoi(line)
+		n := strconv.atoi(line) or { panic(err) }
 		ints << n
 	}
 	for i := preamble; i < ints.len; i++ {

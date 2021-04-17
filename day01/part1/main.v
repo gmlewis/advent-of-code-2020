@@ -14,7 +14,7 @@ fn process(filename string) {
 	lines := os.read_lines(filename) or { panic(err) }
 	mut vals := map[string]bool{}
 	for line in lines {
-		v := strconv.atoi(line)
+		v := strconv.atoi(line) or { panic(err) }
 		if vals['$v'] {
 			println('$v + ${2020 - v} = 2020\n$v * ${2020 - v} = ${v * (2020 - v)}')
 			break

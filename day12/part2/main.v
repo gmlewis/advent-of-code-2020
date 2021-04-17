@@ -32,7 +32,7 @@ fn process(filename string) {
 
 fn (mut p Puzzle) iterate() {
 	for line in p.lines {
-		mut amt := strconv.atoi(line[1..])
+		mut amt := strconv.atoi(line[1..]) or { panic(err) }
 		match line[0] {
 			`N` {
 				p.wnpos += amt

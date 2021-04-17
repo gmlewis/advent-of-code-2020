@@ -14,7 +14,7 @@ fn process(filename string) {
 	lines := os.read_lines(filename) or { panic(err) }
 	mut ints := []int{}
 	for line in lines {
-		n := strconv.atoi(line)
+		n := strconv.atoi(line) or { panic(err) }
 		ints << n
 	}
 	ints.sort()

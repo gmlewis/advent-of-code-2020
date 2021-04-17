@@ -29,7 +29,7 @@ fn process(filename string) {
 		parts := line.split(' ')
 		ins := &Instruction{
 			op: parts[0]
-			arg: strconv.atoi(parts[1])
+			arg: strconv.atoi(parts[1]) or { panic(err) }
 		}
 		cpu.program << ins
 	}

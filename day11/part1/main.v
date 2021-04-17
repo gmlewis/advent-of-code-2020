@@ -58,7 +58,7 @@ fn (mut p Puzzle) iterate() bool {
 		}
 	}
 	if changes_made {
-		p.grid = r
+		p.grid = r.clone()
 	}
 	return !changes_made
 }

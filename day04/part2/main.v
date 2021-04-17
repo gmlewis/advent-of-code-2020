@@ -96,14 +96,14 @@ fn valid_pair(key string, val string) bool {
 }
 
 fn valid_num(s string, min int, max int) bool {
-    v := strconv.atoi(s)
+	v := strconv.atoi(s) or { panic(err) }
     // println('valid_num($s, $min, $max) = ${v >= min && v <= max}')
     return v >= min && v <= max
 }
 
 fn valid_rgb(s string) bool {
     mut re := regex.new()
-    re.compile_opt(r'^#[0-9a-f]{6}$')
+	re.compile_opt(r'^#[0-9a-f]{6}$') or { panic(err) }
     start, _ := re.match_string(s)
     // println('valid_rgb($s) = ${start >= 0}')
     return start >= 0
@@ -111,7 +111,7 @@ fn valid_rgb(s string) bool {
 
 fn valid_pid(s string) bool {
     mut re := regex.new()
-    re.compile_opt(r'^\d{9}$')
+    re.compile_opt(r'^\d{9}$') or { panic(err) }
     start, _ := re.match_string(s)
     // println('valid_pid($s) = ${start >= 0}')
     return start >= 0
