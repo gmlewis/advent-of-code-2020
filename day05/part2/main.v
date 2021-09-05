@@ -37,5 +37,5 @@ fn space_id(s string) int {
 	v = v.replace('B', '1')
 	v = v.replace('L', '0')
 	v = v.replace('R', '1')
-	return int(strconv.parse_int(v, 2, 64))
+	return int(strconv.parse_int(v, 2, 64) or { 0 })
 }

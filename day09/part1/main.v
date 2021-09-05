@@ -15,9 +15,9 @@ fn main() {
 fn process(filename string, preamble int) {
 	println('Processing $filename ...')
 	lines := os.read_lines(filename) or { panic(err) }
-	mut ints := []int{}
+	mut ints := []i64{}
 	for line in lines {
-		n := strconv.atoi(line) or { panic(err) }
+		n := strconv.parse_int(line, 10, 64) or { panic(err) }
 		ints << n
 	}
 	for i := preamble; i < ints.len; i++ {
@@ -27,7 +27,7 @@ fn process(filename string, preamble int) {
 	}
 }
 
-fn found_solution(n int, ints []int, preamble int) bool {
+fn found_solution(n int, ints []i64, preamble int) bool {
 	v := ints[n]
 	mut seen := map[string]bool{}
 	for i := n - preamble; i < n; i++ {

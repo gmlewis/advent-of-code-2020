@@ -13,8 +13,8 @@ mut:
 	width  int
 	height int
 	grid   map[string]rune
-	key_x map[string]int
-	key_y map[string]int
+	key_x  map[string]int
+	key_y  map[string]int
 }
 
 fn process(filename string) {
@@ -63,27 +63,47 @@ fn (mut p Puzzle) iterate() bool {
 	return !changes_made
 }
 
+// As of 2021-09-05, V version 0.2.4, the following gives this error:
+//
+// $ v run main.v ../example1.txt ../input.txt
+// main.v:93:6: error: undefined ident: `p`
+//    91 |     t := fn (x int, y int) {
+//    92 |         new_k := gen_key(x, y)
+//    93 |         if p.grid[new_k] == `#` {
+//       |            ^
+//    94 |             adj++
+//    95 |         }
+// main.v:94:4: error: undefined ident: `adj`
+//    92 |         new_k := gen_key(x, y)
+//    93 |         if p.grid[new_k] == `#` {
+//    94 |             adj++
+//       |             ~~~
+//    95 |         }
+//    96 |     }
+//
+// Yet this worked fine when it was originally written.
+
 fn (p &Puzzle) count_adjacent_occupied(k string) int {
 	x := p.key_x[k]
 	y := p.key_x[k]
 	mut adj := 0
 
-	t := fn(x int, y int) {
+	t := fn (x int, y int) {
 		new_k := gen_key(x, y)
 		if p.grid[new_k] == `#` {
 			adj++
 		}
 	}
 
-	t(x-1, y-1)
-	t(x, y-1)
-	t(x+1, y-1)
-	t(x-1, y)
+	t(x - 1, y - 1)
+	t(x, y - 1)
+	t(x + 1, y - 1)
+	t(x - 1, y)
 
-	t(x+1, y)
-	t(x-1, y+1)
-	t(x, y+1)
-	t(x+1, y+1)
+	t(x + 1, y)
+	t(x - 1, y + 1)
+	t(x, y + 1)
+	t(x + 1, y + 1)
 
 	return adj
 }
@@ -91,7 +111,9 @@ fn (p &Puzzle) count_adjacent_occupied(k string) int {
 fn (p &Puzzle) occupied() int {
 	mut count := 0
 	for _, v in p.grid {
-		if v == `#` { count++ }
+		if v == `#` {
+			count++
+		}
 	}
 	return count
 }

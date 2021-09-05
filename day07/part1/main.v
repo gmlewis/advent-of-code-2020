@@ -20,9 +20,9 @@ fn process(filename string) {
 	lines := os.read_lines(filename) or { panic(err) }
 	mut line_re := regex.new()
 	// NOTE: As of 2020-12-09, the regex support is too buggy to use.
-	line_re.compile_opt(r'^(.*?) bags contain (.*)\.$') or { panic(err) }
+	line_re.compile_opt(r'^(.*) bags contain (.*)\.$') or { panic(err) }
 	mut contains_re := regex.new()
-	contains_re.compile_opt(r',?\s*(\d+) (.*?) bags?') or { panic(err) }
+	contains_re.compile_opt(r',?\s*(\d+) (.*) bags?') or { panic(err) }
 	mut rules := map[string][]&Contains{}
 	for line in lines {
 		line_re.match_string(line)
